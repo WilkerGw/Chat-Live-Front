@@ -15,17 +15,23 @@ export default function Home() {
   const [availableChannels, setAvailableChannels] = useState([]);
   const [activeChannel, setActiveChannel] = useState(null);
   const [dmConversations, setDmConversations] = useState([]);
-  const [unreadCounts, setUnreadCounts] = useState({}); // Estado para mensagens não lidas
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Estado para a sidebar
   const chatComponentRef = useRef(null);
 
-  const handleLoginSuccess = (newToken) => {
+  // Função para abrir/fechar a sidebar
+  const toggleSidebar = () => {
+    setIsSidebarOpen(prev => !prev);
+  };
+
+  const handleLoginSuccess = useCallback((newToken) => {
     localStorage.setItem('chat_token', newToken);
     setToken(newToken);
     try {
       const decoded = jwtDecode(newToken);
       setSelfUser({ id: decoded.id, username: decoded.username });
     } catch (error) { console.error("Token inválido:", error); }
-  };
+  }, []);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('chat_token');
@@ -35,25 +41,21 @@ export default function Home() {
     setAvailableChannels([]);
     setActiveChannel(null);
     setDmConversations([]);
-    setUnreadCounts({}); // Limpar contagens no logout
+    setUnreadCounts({});
   }, []);
   
-  // Modificado para limpar a contagem de não lidas ao selecionar um canal
   const handleSelectChannel = useCallback((channel) => {
     setActiveChannel(channel);
-    setUnreadCounts(counts => ({
-      ...counts,
-      [channel]: 0
-    }));
+    setUnreadCounts(counts => ({ ...counts, [channel]: 0 }));
+    setIsSidebarOpen(false); // Fecha a sidebar ao selecionar um canal
   }, []);
 
   const handleSelectUser = useCallback((userId) => {
     chatComponentRef.current?.startDmWith(userId);
+    setIsSidebarOpen(false); // Fecha a sidebar ao iniciar uma DM
   }, []);
   
-  // Nova função para incrementar a contagem de um canal
   const incrementUnreadCount = useCallback((channel) => {
-    // Só incrementa se o canal não estiver ativo
     setActiveChannel(currentActiveChannel => {
       if (channel !== currentActiveChannel) {
         setUnreadCounts(counts => ({
@@ -68,15 +70,9 @@ export default function Home() {
   useEffect(() => {
     const storedToken = localStorage.getItem('chat_token');
     if (storedToken) {
-      try {
-        const decoded = jwtDecode(storedToken);
-        setSelfUser({ id: decoded.id, username: decoded.username });
-        setToken(storedToken);
-      } catch (error) {
-        localStorage.removeItem('chat_token');
-      }
+      handleLoginSuccess(storedToken);
     }
-  }, []);
+  }, [handleLoginSuccess]);
 
   if (!token) {
     const loginContainerStyle = { maxWidth: '400px', margin: '40px auto', padding: '2rem', backgroundColor: '#ffffff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)' };
@@ -84,26 +80,30 @@ export default function Home() {
   }
 
   return (
-    <div className={styles.mainLayout}>
-      <div className={styles.sidebar}>
-        <ChannelList channels={availableChannels} activeChannel={activeChannel} onSelectChannel={handleSelectChannel} unreadCounts={unreadCounts} />
-        <DmListComponent conversations={dmConversations} activeChannel={activeChannel} onSelectChannel={handleSelectChannel} unreadCounts={unreadCounts} />
-        <UserList users={onlineUsers} selfId={selfUser?.id} onUserClick={handleSelectUser} />
+    <>
+      {isSidebarOpen && <div className={styles.overlay} onClick={toggleSidebar}></div>}
+      <div className={styles.mainLayout}>
+        <div className={`${styles.sidebar} ${isSidebarOpen ? styles.open : ''}`}>
+          <ChannelList channels={availableChannels} activeChannel={activeChannel} onSelectChannel={handleSelectChannel} unreadCounts={unreadCounts} />
+          <DmListComponent conversations={dmConversations} activeChannel={activeChannel} onSelectChannel={handleSelectChannel} unreadCounts={unreadCounts} />
+          <UserList users={onlineUsers} selfId={selfUser?.id} onUserClick={handleSelectUser} />
+        </div>
+        <div className={styles.chatArea}>
+          <ChatComponent
+            ref={chatComponentRef}
+            token={token}
+            selfUser={selfUser}
+            onLogout={handleLogout}
+            activeChannel={activeChannel}
+            setActiveChannel={setActiveChannel}
+            setAvailableChannels={setAvailableChannels}
+            setOnlineUsers={setOnlineUsers}
+            setDmConversations={setDmConversations}
+            incrementUnreadCount={incrementUnreadCount}
+            onToggleSidebar={toggleSidebar}
+          />
+        </div>
       </div>
-      <div className={styles.chatArea}>
-        <ChatComponent
-          ref={chatComponentRef}
-          token={token}
-          selfUser={selfUser}
-          onLogout={handleLogout}
-          activeChannel={activeChannel}
-          setActiveChannel={setActiveChannel}
-          setAvailableChannels={setAvailableChannels}
-          setOnlineUsers={setOnlineUsers}
-          setDmConversations={setDmConversations}
-          incrementUnreadCount={incrementUnreadCount} // Passar a nova função
-        />
-      </div>
-    </div>
+    </>
   );
 }

@@ -1,20 +1,81 @@
+/* src/app/page.module.css - COMPLETO E RESPONSIVO */
+
+/* O layout base é de uma única coluna (mobile-first) */
 .mainLayout {
-  display: flex;
-  gap: 2rem;
-  align-items: flex-start;
-  max-width: 1100px;
-  margin: 40px auto;
-  padding: 0 1rem;
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 20px auto;
 }
 
 .sidebar {
-  flex: 0 0 200px; /* Não cresce, não encolhe, base de 200px */
+  /* Em mobile, a sidebar fica fora do ecrã por padrão */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px; /* Largura do menu */
+  height: 100%;
+  background-color: #f0f2f5;
+  padding: 1rem;
+  transform: translateX(-100%); /* Começa escondida à esquerda */
+  transition: transform 0.3s ease-in-out;
+  z-index: 100;
+  overflow-y: auto; /* Permite scroll se o conteúdo for grande */
+  box-shadow: 4px 0px 15px rgba(0,0,0,0.1);
+}
+
+.sidebar.open {
+  transform: translateX(0); /* Desliza a sidebar para a vista */
+}
+
+/* Fundo escurecido que aparece quando a sidebar está aberta em mobile */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 50;
 }
 
 .chatArea {
-  flex-grow: 1; /* Ocupa o resto do espaço */
+  width: 100%; /* Em mobile, o chat ocupa toda a largura */
   background-color: #ffffff;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
+  padding: 1rem;
+  min-height: calc(100vh - 40px);
+}
+
+/* Media Query: Aplica estes estilos apenas para ecrãs com 768px de largura ou mais */
+@media (min-width: 768px) {
+  .mainLayout {
+    display: flex; /* Ativa o layout de duas colunas */
+    gap: 2rem;
+    align-items: flex-start;
+    padding: 0 1rem;
+  }
+
+  .sidebar {
+    /* Em desktop, a sidebar volta a ser estática e visível */
+    position: sticky;
+    top: 20px;
+    transform: none; /* Remove o efeito de deslizar */
+    box-shadow: none;
+    background-color: transparent;
+    padding: 0;
+    flex: 0 0 250px; /* Define uma largura fixa para a sidebar */
+    height: auto;
+  }
+  
+  .chatArea {
+    padding: 2rem;
+    min-height: auto;
+    flex-grow: 1; /* Ocupa o espaço restante */
+  }
+
+  /* O overlay não é necessário em desktop */
+  .overlay {
+    display: none;
+  }
 }

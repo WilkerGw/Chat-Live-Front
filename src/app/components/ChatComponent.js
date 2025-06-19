@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import styles from './ChatComponent.module.css';
 import Avatar from './Avatar';
 
-const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLogout, activeChannel, setActiveChannel, setAvailableChannels, setOnlineUsers, setDmConversations, incrementUnreadCount }, ref) {
+const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLogout, activeChannel, setActiveChannel, setAvailableChannels, setOnlineUsers, setDmConversations, incrementUnreadCount, onToggleSidebar }, ref) {
   const [socket, setSocket] = useState(null);
   const [connectionStatus, setConnectionStatus] = useState('Conectando...');
   const [message, setMessage] = useState('');
@@ -14,7 +14,6 @@ const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLog
   const typingTimeoutRef = useRef(null);
   const messageAreaRef = useRef(null);
   
-  // Ref para guardar o canal ativo e evitar a dependência no useEffect principal
   const activeChannelRef = useRef(activeChannel);
   useEffect(() => {
     activeChannelRef.current = activeChannel;
@@ -26,13 +25,10 @@ const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLog
     }
   }));
 
-  // useEffect principal, agora com uma lista de dependências mínima e estável
   useEffect(() => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     const newSocket = io(backendUrl, { auth: { token } });
     setSocket(newSocket);
-
-    // --- Listeners de Eventos ---
     newSocket.on('connect', () => {
       setConnectionStatus('Conectado!');
       newSocket.emit('get_dm_conversations');
@@ -54,7 +50,6 @@ const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLog
     });
     newSocket.on('messageHistory', (history) => setChatLog(history || []));
     newSocket.on('receiveMessage', (newMessage) => {
-      // Usamos a ref para obter o valor mais recente do canal ativo sem causar um re-render
       if (newMessage.roomName !== activeChannelRef.current) {
         incrementUnreadCount(newMessage.roomName);
       }
@@ -63,14 +58,9 @@ const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLog
     });
     newSocket.on('userTyping', (typingUser) => setTypingUsers(prev => prev.some(u => u.id === typingUser.id) ? prev : [...prev, typingUser]));
     newSocket.on('userStoppedTyping', (stoppedUser) => setTypingUsers(prev => prev.filter(u => u.id !== stoppedUser.id)));
-
-    // Função de limpeza
-    return () => {
-      newSocket.disconnect();
-    };
+    return () => { newSocket.disconnect(); };
   }, [token, onLogout, setActiveChannel, setAvailableChannels, setOnlineUsers, setDmConversations, incrementUnreadCount]);
 
-  // useEffect para entrar em salas quando o canal ativo muda
   useEffect(() => {
     if (socket && activeChannel) {
       if (!activeChannel.startsWith('dm-')) {
@@ -84,12 +74,10 @@ const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLog
     }
   }, [socket, activeChannel]);
 
-  // useEffect para scroll automático
   useEffect(() => {
     if (messageAreaRef.current) messageAreaRef.current.scrollTop = messageAreaRef.current.scrollHeight;
   }, [chatLog]);
 
-  // --- Funções de Handler ---
   const handleTyping = (e) => {
     setMessage(e.target.value);
     if (!socket || !activeChannel) return;
@@ -128,6 +116,9 @@ const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLog
   return (
     <div>
       <div className={styles.header}>
+        <button className={styles.hamburgerButton} onClick={onToggleSidebar}>
+          ☰
+        </button>
         <h2 className={styles.title}>{getChannelDisplayName()}</h2>
         <button onClick={onLogout} className={styles.logoutButton}>Sair</button>
       </div>

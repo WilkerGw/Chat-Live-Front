@@ -1,13 +1,17 @@
+/* src/app/components/ChatComponent.module.css - COMPLETO E RESPONSIVO */
+
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   margin-bottom: 1rem;
 }
 
 .title {
   font-size: 1.5rem;
   font-weight: 600;
+  flex-grow: 1;
+  text-align: center;
 }
 
 .logoutButton {
@@ -17,6 +21,7 @@
   color: white;
   font-weight: 500;
   transition: background-color 0.2s;
+  margin-left: auto; /* Empurra o botão para a direita */
 }
 
 .logoutButton:hover {
@@ -44,22 +49,19 @@
   gap: 1rem;
 }
 
-/* Container para a mensagem inteira (avatar + bolha) */
 .messageContainer {
   display: flex;
   gap: 0.75rem;
   max-width: 85%;
 }
 
-/* Alinha a mensagem dos outros à esquerda */
 .otherMessageContainer {
   align-self: flex-start;
 }
 
-/* Alinha as nossas mensagens à direita */
 .myMessageContainer {
   align-self: flex-end;
-  gap: 0; /* Não precisa de espaço se não tem avatar */
+  gap: 0;
 }
 
 .messageBubble {
@@ -89,7 +91,7 @@
 .myMessage {
   background-color: #007bff;
   color: white;
-  border-bottom-right-radius: 4px; /* Estilo clássico de bolha */
+  border-bottom-right-radius: 4px;
 }
 
 .myMessage .messageTimestamp {
@@ -99,7 +101,7 @@
 .otherMessage {
   background-color: #e9e9eb;
   color: #1c1e21;
-  border-bottom-left-radius: 4px; /* Estilo clássico de bolha */
+  border-bottom-left-radius: 4px;
 }
 
 .typingIndicator {
@@ -141,4 +143,20 @@
 
 .sendButton:hover {
   background-color: #0056b3;
+}
+
+/* Botão Hamburger só visível em mobile */
+.hamburgerButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 0.5rem;
+}
+
+/* Esconde o botão em ecrãs de desktop */
+@media (min-width: 768px) {
+  .hamburgerButton {
+    display: none;
+  }
 }
