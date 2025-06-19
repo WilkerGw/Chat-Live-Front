@@ -1,0 +1,19 @@
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #007bff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  flex-shrink: 0; /* Impede que o avatar encolha */
+  object-fit: cover; /* Garante que a imagem preencha o círculo */
+  overflow: hidden; /* Garante que a imagem não saia do círculo */
+}
+
+.initial {
+  line-height: 1;
+}
