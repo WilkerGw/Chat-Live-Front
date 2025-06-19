@@ -13,57 +13,64 @@ const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLog
   const [dmUsers, setDmUsers] = useState(null);
   const typingTimeoutRef = useRef(null);
   const messageAreaRef = useRef(null);
+  
+  // Ref para guardar o canal ativo e evitar a dependência no useEffect principal
+  const activeChannelRef = useRef(activeChannel);
+  useEffect(() => {
+    activeChannelRef.current = activeChannel;
+  }, [activeChannel]);
 
   useImperativeHandle(ref, () => ({
     startDmWith(targetUserId) {
-      if (socket) {
-        socket.emit('start_dm', targetUserId);
-      }
+      if (socket) socket.emit('start_dm', targetUserId);
     }
   }));
 
+  // useEffect principal, agora com uma lista de dependências mínima e estável
   useEffect(() => {
-    const newSocket = io("http://localhost:3001", { auth: { token } });
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    const newSocket = io(backendUrl, { auth: { token } });
     setSocket(newSocket);
 
+    // --- Listeners de Eventos ---
     newSocket.on('connect', () => {
       setConnectionStatus('Conectado!');
       newSocket.emit('get_dm_conversations');
     });
-
-    newSocket.on('receiveMessage', (newMessage) => {
-      if (newMessage.roomName !== activeChannel) {
-        incrementUnreadCount(newMessage.roomName);
-      }
-      setTypingUsers(prev => prev.filter(u => u.id !== newMessage.user.id));
-      setChatLog(prevLog => [...prevLog, newMessage]);
+    newSocket.on('connect_error', (err) => {
+      console.error("Erro de conexão com o back-end:", err.message);
+      if (err.message.includes("Token")) setTimeout(onLogout, 3000);
     });
-    
     newSocket.on('onlineUsers', setOnlineUsers);
+    newSocket.on('availableRooms', (rooms) => {
+      setAvailableChannels(rooms);
+      setActiveChannel(current => (!current && rooms.length > 0) ? rooms[0] : current);
+    });
     newSocket.on('dm_conversations_list', setDmConversations);
     newSocket.on('dm_started', ({ roomName, users }) => {
       setActiveChannel(roomName);
       setDmUsers(users);
       newSocket.emit('get_dm_conversations');
     });
-    newSocket.on('availableRooms', (rooms) => {
-      setAvailableChannels(rooms);
-      setActiveChannel(current => (!current && rooms.length > 0) ? rooms[0] : current);
-    });
     newSocket.on('messageHistory', (history) => setChatLog(history || []));
+    newSocket.on('receiveMessage', (newMessage) => {
+      // Usamos a ref para obter o valor mais recente do canal ativo sem causar um re-render
+      if (newMessage.roomName !== activeChannelRef.current) {
+        incrementUnreadCount(newMessage.roomName);
+      }
+      setTypingUsers(prev => prev.filter(u => u.id !== newMessage.user.id));
+      setChatLog(prevLog => [...prevLog, newMessage]);
+    });
     newSocket.on('userTyping', (typingUser) => setTypingUsers(prev => prev.some(u => u.id === typingUser.id) ? prev : [...prev, typingUser]));
     newSocket.on('userStoppedTyping', (stoppedUser) => setTypingUsers(prev => prev.filter(u => u.id !== stoppedUser.id)));
-    newSocket.on('connect_error', (err) => {
-      console.error("Erro de conexão:", err.message);
-      setConnectionStatus(`Falha na conexão.`);
-      if (err.message.includes("Token")) setTimeout(onLogout, 3000);
-    });
 
+    // Função de limpeza
     return () => {
       newSocket.disconnect();
     };
-  }, [token, onLogout, setAvailableChannels, setActiveChannel, setOnlineUsers, setDmConversations, incrementUnreadCount]);
+  }, [token, onLogout, setActiveChannel, setAvailableChannels, setOnlineUsers, setDmConversations, incrementUnreadCount]);
 
+  // useEffect para entrar em salas quando o canal ativo muda
   useEffect(() => {
     if (socket && activeChannel) {
       if (!activeChannel.startsWith('dm-')) {
@@ -77,12 +84,12 @@ const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLog
     }
   }, [socket, activeChannel]);
 
+  // useEffect para scroll automático
   useEffect(() => {
-    if (messageAreaRef.current) {
-      messageAreaRef.current.scrollTop = messageAreaRef.current.scrollHeight;
-    }
+    if (messageAreaRef.current) messageAreaRef.current.scrollTop = messageAreaRef.current.scrollHeight;
   }, [chatLog]);
 
+  // --- Funções de Handler ---
   const handleTyping = (e) => {
     setMessage(e.target.value);
     if (!socket || !activeChannel) return;
@@ -115,7 +122,6 @@ const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLog
   const formatTypingUsers = () => {
     if (typingUsers.length === 0) return '';
     if (typingUsers.length === 1) return `${typingUsers[0].username} está a digitar...`;
-    if (typingUsers.length === 2) return `${typingUsers[0].username} e ${typingUsers[1].username} estão a digitar...`;
     return 'Vários utilizadores estão a digitar...';
   };
 
@@ -156,5 +162,4 @@ const ChatComponent = forwardRef(function ChatComponent({ token, selfUser, onLog
   );
 });
 
-// --- LINHA EM FALTA ADICIONADA AQUI ---
 export default ChatComponent;

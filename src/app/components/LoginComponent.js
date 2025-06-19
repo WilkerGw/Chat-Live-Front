@@ -1,27 +1,30 @@
 // src/app/components/LoginComponent.js
 "use client";
 
-import React, { useState } from 'react';
-import axios from 'axios';
-import styles from './LoginComponent.module.css'; // Importando o CSS Module
+import React, { useState } from "react";
+import axios from "axios";
+import styles from "./LoginComponent.module.css"; // Importando o CSS Module
 
 export default function LoginComponent({ onLoginSuccess }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     try {
-      const response = await axios.post('http://localhost:3001/login', {
-        username,
-        password,
-      });
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/login`,
+        {
+          username,
+          password,
+        }
+      );
       onLoginSuccess(response.data.token);
     } catch (err) {
-      setError('Nome de usuário ou senha incorretos.');
+      setError("Nome de usuário ou senha incorretos.");
       console.error("Erro no login:", err);
     }
   };
@@ -31,7 +34,9 @@ export default function LoginComponent({ onLoginSuccess }) {
       <h2 className={styles.title}>Login</h2>
       <form onSubmit={handleLogin} className={styles.form}>
         <div className={styles.inputGroup}>
-          <label htmlFor="username" className={styles.label}>Usuário</label>
+          <label htmlFor="username" className={styles.label}>
+            Usuário
+          </label>
           <input
             id="username"
             type="text"
@@ -42,7 +47,9 @@ export default function LoginComponent({ onLoginSuccess }) {
           />
         </div>
         <div className={styles.inputGroup}>
-          <label htmlFor="password"  className={styles.label}>Senha</label>
+          <label htmlFor="password" className={styles.label}>
+            Senha
+          </label>
           <input
             id="password"
             type="password"
